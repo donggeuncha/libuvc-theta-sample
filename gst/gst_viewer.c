@@ -177,6 +177,7 @@ main(int argc, char **argv)
 	int idx;
 	char *pipe_proc;
 	char *cmd_name;
+	char *dec_name;
 
 	cmd_name = rindex(argv[0], '/');
 	if (cmd_name == NULL)
@@ -185,11 +186,26 @@ main(int argc, char **argv)
 		cmd_name++;
 
 	if (strcmp(cmd_name, "gst_loopback") == 0)
-		pipe_proc = "decodebin ! autovideoconvert ! "
-			"video/x-raw,format=I420 ! identity drop-allocation=true !"
-			"v4l2sink device=/dev/video1 sync=false";
+		if (argc == 1)
+			pipe_proc = "decodebin ! autovideoconvert ! "
+				"video/x-raw,format=I420 ! identity drop-allocation=true ! "
+				"v4l2sink device=/dev/video0 sync=false";
+		else {
+			dec_name = argv[1];
+			if (strcmp(dec_name, "nvdec") == 0)
+				pipe_proc = "nvdec ! gldownload ! videoconvert n-thread=0 ! "
+					"video/x-raw,format=I420 ! identity drop-allocation=true ! "
+					"v4l2sink device=/dev/video0 qos=false sync=false";
+		}
 	else
-		pipe_proc = " decodebin ! autovideosink sync=false";
+		if (argc == 1)
+			pipe_proc = "decodebin ! autovideosink sync=false";
+		else {
+			dec_name = argv[1];
+			if (strcmp(dec_name, "nvdec") == 0)
+				pipe_proc = "nvdec ! glimagesink qos=false sync=false";
+		}
+	printf("pipe_proc = %s\n", pipe_proc);
 
 	if (!gst_src_init(&argc, &argv, pipe_proc))
 		return -1;
