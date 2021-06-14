@@ -119,13 +119,29 @@ void *
 keywait(void *arg)
 {
 	struct gst_src *s;
-	char keyin[4];
+	sigset_t set;
+	int sig;
+	int *sigptr = &sig;
+	
+	// char keyin[4];
+	// read(1, keyin, 1);
 
-	read(1, keyin, 1);
+	sigemptyset(&set);
+	if (sigaddset(&set, SIGINT) == -1) {
+		perror("Sigaddset error");
+	} else {
+		if (sigwait(&set, sigptr) == -1) {
+			perror("Sigwait error");
+		} else {
+			if(*sigptr == SIGINT)
+				printf("SIGINT was received\n");
+			else
+				printf("sigwait returned with sig: %d\n", *sigptr);
+		}
+	}
 
 	s = (struct gst_src *)arg;
 	g_main_loop_quit(s->loop);
-
 }
 
 void
