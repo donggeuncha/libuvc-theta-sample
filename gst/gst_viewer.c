@@ -191,9 +191,10 @@ main(int argc, char **argv)
 
 	struct gst_src *s;
 	int idx;
-	char *pipe_proc;
+	char pipe_proc[256];
 	char *cmd_name;
 	char *dec_name;
+	char *vid_dev_name;
 
 	cmd_name = rindex(argv[0], '/');
 	if (cmd_name == NULL)
@@ -203,23 +204,35 @@ main(int argc, char **argv)
 
 	if (strcmp(cmd_name, "gst_loopback") == 0)
 		if (argc == 1)
-			pipe_proc = "decodebin ! autovideoconvert ! "
+			strcpy(pipe_proc, "decodebin ! autovideoconvert ! "
 				"video/x-raw,format=I420 ! identity drop-allocation=true ! "
-				"v4l2sink device=/dev/video0 sync=false";
+				"v4l2sink device=/dev/video0 sync=false");
 		else {
 			dec_name = argv[1];
-			if (strcmp(dec_name, "nvdec") == 0)
-				pipe_proc = "nvdec ! gldownload ! videoconvert n-thread=0 ! "
+			if (strcmp(dec_name, "nvdec") == 0) {
+				vid_dev_name = argv[2];
+				strcpy(pipe_proc, "nvdec ! gldownload ! videoconvert n-thread=0 ! "
 					"video/x-raw,format=I420 ! identity drop-allocation=true ! "
-					"v4l2sink device=/dev/video0 qos=false sync=false";
+					"v4l2sink device=");
+				strcat(pipe_proc, vid_dev_name);
+				strcat(pipe_proc, " qos=false sync=false");
+			}
+			else {
+				vid_dev_name = argv[1];
+				strcpy(pipe_proc, "decodebin ! autovideoconvert ! "
+					"video/x-raw,format=I420 ! identity drop-allocation=true ! "
+					"v4l2sink device=");
+				strcat(pipe_proc, vid_dev_name);
+				strcat(pipe_proc, " qos=false sync=false");
+			}
 		}
 	else
 		if (argc == 1)
-			pipe_proc = "decodebin ! autovideosink sync=false";
+			strcpy(pipe_proc, "decodebin ! autovideosink sync=false");
 		else {
 			dec_name = argv[1];
 			if (strcmp(dec_name, "nvdec") == 0)
-				pipe_proc = "nvdec ! glimagesink qos=false sync=false";
+				strcpy(pipe_proc, "nvdec ! glimagesink qos=false sync=false");
 		}
 	printf("pipe_proc = %s\n", pipe_proc);
 
